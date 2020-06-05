@@ -42,16 +42,20 @@ public class MainActivity extends Activity implements OnClickListener{
 	Button btn1;
 
 	SurfaceView surfaceView;
-	Camera camera;
+
+////	Camera camera;
 	MediaRecorder mediaRecorder;
 
   private  PowerManager mPowerManager ;
    private  PowerManager.WakeLock mWakeLock;
    private int mWakeLockState = -1;
 
-SurfaceHolder holder;  //moving from create
+ SurfaceHolder holder;  //moving from create
 
-File photoFile;
+// File
+  String  photoFile;
+
+  extn mm = new extn(); 
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -73,14 +77,14 @@ File photoFile;
 
 		surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
 
-
+        holder = surfaceView.getHolder();
+        mm.macro_surfaceStart(holder);
+ 
        File pictures = Environment
            .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-       photoFile = new File(pictures, "debag.jpg");
+       photoFile = pictures.getAbsolutePath();// new File(pictures, "debag.jpg");
 
-        macro_surfaceStart();
 
-////// остановка гашения экрана - режим затемнения................ 
     mPowerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
     mWakeLockState = PowerManager.SCREEN_DIM_WAKE_LOCK;//getWakeLockType("SCREEN_DIM_WAKE_LOCK"); //strLockState);  
     mWakeLock = mPowerManager.newWakeLock(mWakeLockState,
@@ -95,85 +99,17 @@ SCREEN_DIM_WAKE_LOCK	Вкл	Затемнен	Выкл
 SCREEN_BRIGHT_WAKE_LOCK	Вкл	Полная яркость	Выкл
 FULL_WAKE_LOCK	Вкл	Полная яркость	Полная яркость
 */
+
+
     }//end create
 
-
-////////////////////////////////////////////запуск камеры и превью
-   void macro_surfaceStart()  {  
-     	//	SurfaceHolder
-        holder = surfaceView.getHolder();
-              
-        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);  //(настройка типа нужна только в Android версии ниже 3.0).  		
-		holder.addCallback(new SurfaceHolder.Callback() {
-				@Override
-				public void surfaceCreated(SurfaceHolder holder) {
-					try {
-				 		// mm.
-                           camera.setPreviewDisplay(holder);
-
-				 		//mm.
-//		эксперименты с поворотом изображения				
-                           camera.setDisplayOrientation(90); //0, 90, 180, and 270. тест
-
-				 		//mm.
-                           camera.startPreview();
-    					text0.setText("Превью пошло");
-					} catch (Exception e) {
-						e.printStackTrace();
-						text0.setText("Ой бляяя!!! КакаятоОшипка");
-					}
-				}	
-                                @Override
-				public void surfaceChanged(SurfaceHolder holder, int format,
-										   int width, int height) {
-				}
-
-				@Override
-				public void surfaceDestroyed(SurfaceHolder holder) {
-
-                      if (/* mm. */camera != null) {
-                          // mm.camera.setPreviewCallback(null);
-                      /* mm. */ camera.stopPreview();
-				}
-             }
-			});
-
-  }
-
-
-   public int setPictureSize(int width, int height) { //установка siZe
-     int ret=0;  
-     
-     if (camera == null) ret = -1; //камера не активирована
-       else {
-       Parameters params = camera.getParameters();
-       params.setPictureSize(width,height ); 
-       camera.setParameters(params);
-       }
-    return ret;   
-   }// setpictsize
-
-
-  public void getPicture() {
-    camera.takePicture(null, null, new PictureCallback() {
-      @Override
-      public void onPictureTaken(byte[] data, Camera camera) {
-        try {
-          FileOutputStream fos = new FileOutputStream(photoFile);
-          fos.write(data);
-          fos.close();
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-     camera.startPreview();
-      }
-    });
-
-  }
+int beforeStandby = 1000*30; //30 сек   
+int standby = 0;  //  -1 -- ожидание не работает
+boolean timeron=false;
 
 
 int cameraPrevStat=1;
-
+int indPhoto=0;
 
 	@Override
 	public void onClick(View v) {
@@ -181,46 +117,169 @@ int cameraPrevStat=1;
 		switch (v.getId()) {
  
 			case R.id.btnSnap:
-
-   //      гасим превью принудительно
-  //  просто перекрываем другим окном
-      
-        if (camera != null)
-        {
-       Intent intent = new Intent(this, nilActivity.class);
-      startActivity(intent);
-
+      if ( ! proccess  && ! videorecorded) {
+       mm.setPictureSize(640,480);
+       mm.getPicture(true,photoFile+"/debag"+indPhoto+".jpg");
+       indPhoto++;
+       becomeSleep(timeSleep_conf);
+//					 am = (AudioManager) getSystemService(AUDIO_SERVICE); //попытка глушить затвор
+//	                              	 am.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+   }
 				break;	
-			case R.id.btnProccess:
+			case R.id.btnProccess:       //включает или выключает непрепывное фотографирование 
+      if ( ! proccess  && ! videorecorded) { // каждые 3.8 sec
+       becomeSleep(-1); // выключение режима спячки
+
+       text1.setText("PROCCESSED");
+       btnProccess.setText("PRO");
+
+       mm.setPictureSize(640,480);
+       proccessStart(1000,3800);
+       }
+       else {
+         proccess=false;
+       text1.setText("stat");
+       btnProccess.setText("start");          
+       becomeSleep(timeSleep_conf); //включение режима спячки
+   
  
- // забираем картинку 
-       setPictureSize(640,480);
-       getPicture();
+         }
 				break;	
-           }               
-      }
+			case R.id.btnVideo:
+   	if ( ! videorecorded && ! proccess) {//Если процесс не запущен и не пишется видео
+/*
+                                   am = (AudioManager) getSystemService(AUDIO_SERVICE); //разрешить звуки
+                                   am.setStreamMute(AudioManager.STREAM_SYSTEM, false);
+*/                 becomeSleep(-1);
+				    indPhoto++;
+				   videorecorded = startVideo();
+				   text1.setText("RECORDDD");
+				   btnVideo.setText("REC");
+                  }
+                  else
+				    if (  videorecorded ) {
+				       stopVideo();
+				       videorecorded = false;
+				       text1.setText("state");
+				       btnVideo.setText("call");
+                       becomeSleep(timeSleep_conf);    
+                     }
+             break;
 
+
+
+        }               
+  }//onclick
+
+
+     public boolean startVideo() {
+         String filestring = /*currentDir.getAbsolutePath()*/ photoFile+"/" + "myvideo"+indPhoto+".3gp";
+		         return mm.startVideo(surfaceView , filestring);
+		 
+	 }
+ 
+
+	public void stopVideo(){
+           mm.stopVideo();
+	}
+
+
+////////////////////////////////////////                                 proccess timer  
+  
+  boolean  proccess=false;
+  boolean   videorecorded=false;
+
+  void proccessStart(int delay, int period) {
+//    final 
+    int dl=delay, per = period;
+    proccess=true;
+    new java.util.Timer().schedule(
+        new TimerTask() {
+             public void run() {
+                   if (proccess)  {
+                     mm.getPicture(true,photoFile+"/debag"+indPhoto+".jpg");                     
+                    indPhoto++;
+                    }
+                    else cancel();
+              }
+        }, dl , per );
+ }
+
+
+
+///////////////////////////////////////////////////proccess
+
+
+
+////////////////////////////////////////                                 sleep timer
+   boolean sleep_conf=true;   //запрещает разрешает  sleep гашение превью
+   int timeSleep_conf=11*1000; 
+   
+   Timer timerSleep;
+   TimerTask taskSleep;  
+
+   boolean sleepTimerHalt=false;
+   boolean proccessSleep = false;  
+   int countToSleep=0;
+   int timerSleepInterval=3000;
+
+  void becomeSleep(int param) {   
+   if (sleep_conf) {
+       if (param<0)                   // отмена подготовка ко сну
+            sleepTimerHalt=true;
+         else
+       if (proccessSleep) countToSleep=0;  // просто обнуляем счетчик
+         else {
+          sleepTimerHalt=false;
+          proccessSleep = true;
+          countToSleep=0;    
+
+          final Intent intent = new Intent(this, nilActivity.class);
+          final int par = param/timerSleepInterval;
+
+           timerSleep = new Timer();
+           taskSleep = new TimerTask() {
+   
+              @Override
+              public void run() {
+                if (! sleepTimerHalt)
+                   if ( countToSleep<par) countToSleep++;    //   {
+                      else{
+                       proccessSleep = false;
+                       startActivity(intent);
+                        cancel();
+                       }
+                  else {
+                     proccessSleep = false;                
+                     cancel();
+                    }
+         }//endrun
+     };
+      timerSleep.schedule(taskSleep, 0 , timerSleepInterval );   
+     }//else
+ }//sleepconf
+}
+///////////////////////////////////////////////////////////////////////////////
+
+            //  startActivityForResult(intent, 100); //startActivity(intent);
 
  	@Override
 	protected void onResume() {  //проверить, возможно организовать продолжение видеозаписи
 		super.onResume();
-		//mm.
-           camera = Camera.open();		
+		mm.camera = Camera.open();		
 	}
 
 	@Override
 	protected void onPause() {  //проверить, возможно организовать сохранение видеозаписи
 		super.onPause();
-//		mm.
-               releaseMediaRecorder();
-		if (/*mm.*/camera != null) 
-    			/*mm.*/camera.release();
-//		mm.
-           camera = null;  
-
+//		mm.releaseMediaRecorder();
+		if (mm.camera != null) 
+    			mm.camera.release();
+		mm.camera = null;  
 	}
 
-	protected void onDestroy() {  // возобновить гашение экрана по закрытию программы
+
+	protected void onDestroy() {
  
 		if (mWakeLock != null) {
 			mWakeLock.release();
@@ -230,4 +289,5 @@ int cameraPrevStat=1;
     super.onDestroy();
   }
 
-}//all
+
+}
