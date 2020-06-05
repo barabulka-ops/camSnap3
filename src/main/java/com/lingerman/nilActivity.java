@@ -1,7 +1,5 @@
 package com.lingerman;
 
-//////////////////////////////////пустое окно, чтобы перекрыть превью камеры
-
 import android.app.*;
 import android.os.*;
 
@@ -29,6 +27,17 @@ public class nilActivity extends Activity {
  
       }
 
+@Override
+public boolean onKeyDown(int keyCode, KeyEvent event) {
+  boolean ret=false;
 
-
+    switch (keyCode) {
+        case KeyEvent.KEYCODE_VOLUME_UP :  
+        finish();
+        break;
+        }
+        
+ return super.onKeyDown(keyCode, event); //  возврат , если не обработан
+  }
+  
 }
