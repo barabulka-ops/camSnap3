@@ -29,7 +29,7 @@
 		 android:layout_height="70dp"
 		
 		 android:onClick="onClickPicture"
-		 android:text="notuse">
+		 android:text="o">
 	 </Button>
 
 
@@ -44,7 +44,7 @@
 		  
 		
 		 android:onClick="StartS"
-		 android:text="not use">
+		 android:text="start">
 	 </Button>
 
 
