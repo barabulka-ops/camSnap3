@@ -1,5 +1,6 @@
 package com.lingerman;
 
+
 import android.app.*;
 import android.os.*;
 
@@ -13,14 +14,20 @@ import android.media.*;// CamcorderProfile;
 import android.hardware.*; // Camera. Sensor;  .SensorEvent; .SensorEventListener; .SensorManager;
 import android.hardware.Camera.*; //PictureCallback;
 
+import android.content.*; // SharedPreferences;
+// import android.content.SharedPreferences.Editor;
 
-
+import android.widget.*;
 
 public class extn {
+
+
+//////////////////////////////////////////////////////  camera ////////////////////////////////////////////
 
   public int Error = 0;
   public String ErrorString=null;
 
+  public boolean cameraREADY = false;
 
 	Camera camera;
 	MediaRecorder mediaRecorder;
@@ -42,6 +49,8 @@ public class extn {
 
                            camera.startPreview();
 
+                           cameraREADY=true;
+
 					} catch (Exception e) {
 						e.printStackTrace();
                         Error =1;
@@ -62,7 +71,7 @@ public class extn {
 				    }
                 }
 			  });
-    }   
+    }  //end macrosurfStart
 
    
      public int setPictureSize(int width, int height) {
@@ -92,8 +101,14 @@ public class extn {
   public int videoWidth=640,videoHeight=480;
   public int bitRate=0 , 
   VideoFrameRate=15;
-
    public String videoFormat="480";//null;
+
+
+  public void setZoom (int value) {
+    Parameters params = camera.getParameters();
+    params.setZoom(value); 
+    camera.setParameters(params);
+  }//void
 
 
   public int  getPicture(boolean autofocus, String pathAndName) {
@@ -113,9 +128,8 @@ public class extn {
                }
       camera.startPreview();
       }
-    });
-
-    return ret;
+    }); 
+   return  ret;
   } //endgetpict
 
 
@@ -143,13 +157,10 @@ public class extn {
 
     	  mediaRecorder.setProfile(CamcorderProfile.get(quality) );
            }
+//// //QUALITY_CIF));  //https://developer.android.com/reference/android/media/CamcorderProfile
 
-////***************************for normal phone
-								      //QUALITY_CIF));
-	//https://developer.android.com/reference/android/media/CamcorderProfile
-
-       else
-      {
+         else
+        {
       //****************************for oldphone
 
       mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4); // 20.6.18  prev  DEFAULT);
@@ -211,6 +222,92 @@ public class extn {
 		 }
 	 }
   
-///////////////////////////////////////////
 
-}  
+  public String getAllParam() { // flatten
+   String flat = null;
+   String ret =null;
+   StringBuffer sb = new StringBuffer();
+   
+    if (camera != null) flat = camera.getParameters().flatten();
+ //  ret=flat;
+    String[] S = flat.split(";");
+    for (int i=0;i<S.length;i++) 
+                  sb.append(S[i]+'\n');
+     ret=new String(sb);
+    return ret;
+   } 
+
+
+
+
+///////////////////////////////////////////   //////////////////////////////////////end camera ///////////////////////////////
+
+
+/////////////////////////////                 files         \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+ public static int writeText( String filename, String str, boolean Append) {
+ int ret = 0;
+ FileWriter writeFile = null;
+ try {
+ 
+    File F = new File(filename);
+    writeFile = new FileWriter(F);
+    writeFile.write(str);
+    ret = 0;
+  } catch (IOException e) {
+    e.printStackTrace();
+    ret=-1;
+  } finally {
+    if(writeFile != null) {
+        try {
+            writeFile.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            ret = -2;
+        }
+    }//if
+  }  
+ return ret;
+ }//writeTe
+
+
+ public static String readStringText(String fileName)  {// улучшить -- гарантировать закрытие
+            String ret = null;
+            Reader in = null ;
+            int  chr; 
+            StringBuilder sb = new StringBuilder();
+            try {
+               in = new FileReader(fileName);
+               chr=in.read();
+               while (chr != -1 ) {
+                        sb.append( (char)chr );
+                        chr=in.read();
+                     }
+               ret = new String (sb); 
+               in.close();
+           } catch (Exception e) {ret = null;   }
+
+   return ret;
+    }
+ 
+/////////////////////////////            end     files         \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+/////////////////////////////           config         \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+   public String[] findParam (String param, String[] S , boolean del ) { //del удаляет cmment and finds  
+      int i=0; boolean notfind = true;
+      String[] ret = null; 
+      while ( i<S.length && notfind ) {
+        String s=S[i].trim();        
+        String[] tt = s.split("\\s+");        
+        if (tt[0].equals(param) )
+          {ret=tt; notfind=false;}
+        else
+         i++;
+      } //
+    return ret;
+   }
+
+/////////////////////////////        end   config         \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+} //all
